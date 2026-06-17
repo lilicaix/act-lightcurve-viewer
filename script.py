@@ -3,9 +3,9 @@ import argparse
 
 import numpy as np
 
-import file_io
-import plotting
-import processing
+from . import file_io
+from . import plotting
+from . import processing
 
 # pipeline parameters
 parser = argparse.ArgumentParser(description="ACT lightcurve viewer pipeline")
@@ -18,7 +18,9 @@ parser.add_argument(
     default="collated_lightcurve.txt",
     help="Path to collated lightcurve text file",
 )
-parser.add_argument("-c", "--coadd-days", type=int, default=3, help="Number of days to coadd.")
+parser.add_argument(
+    "-c", "--coadd-days", type=int, default=3, help="Number of days to coadd."
+)
 parser.add_argument(
     "-b",
     "--bands",
@@ -43,7 +45,9 @@ all_thumbnails = file_io.read_thumbnails(thumbnail_dir)
 # 2. process math (coadding)
 coadded_thumbnails = []
 for file_data in all_thumbnails:
-    coadded = processing.coadd_thumbnails(file_data, time_range=[], time_delta=coadd_days)
+    coadded = processing.coadd_thumbnails(
+        file_data, time_range=[], time_delta=coadd_days
+    )
     coadded_thumbnails.extend(coadded)
 
 # 3. setup variables for plotting
@@ -70,7 +74,9 @@ for source in sources:
 # 4. generate plots
 print(f"Generating thumbnail plots for {len(sources)} sources...")
 plotting.plot_iqu_maps(coadded_thumbnails, sources)
-plotting.plot_time_evolution(coadded_thumbnails, sources, mean_observation_times, coadd_days)
+plotting.plot_time_evolution(
+    coadded_thumbnails, sources, mean_observation_times, coadd_days
+)
 
 
 # phase 2: text lightcurve pipeline

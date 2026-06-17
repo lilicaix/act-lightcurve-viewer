@@ -1,7 +1,7 @@
 # imports
 import numpy as np
 
-from file_io import get_thumbnail_times
+from .file_io import get_thumbnail_times
 
 
 def coadd_thumbnails(
@@ -62,25 +62,25 @@ def coadd_thumbnails(
                 unique_arrays.append(thumb_arr)
             if thumb_arr not in coadded_thumbs[source][thumb_time_bin][thumb_freq]:
                 coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr] = {}
-                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr]["rho"] = thumb.pop(
-                    "rho"
+                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr]["rho"] = (
+                    thumb.pop("rho")
                 )
-                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr]["kappa"] = thumb.pop(
+                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr][
                     "kappa"
-                )
-                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr]["coadded_map_ids"] = [
-                    thumb.pop("Id")
-                ]
+                ] = thumb.pop("kappa")
+                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr][
+                    "coadded_map_ids"
+                ] = [thumb.pop("Id")]
                 coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr][
                     "coadded_observation_times"
                 ] = [thumb.pop("t")]
             else:
-                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr]["rho"] += thumb.pop(
+                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr][
                     "rho"
-                )
-                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr]["kappa"] += thumb.pop(
+                ] += thumb.pop("rho")
+                coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr][
                     "kappa"
-                )
+                ] += thumb.pop("kappa")
                 coadded_thumbs[source][thumb_time_bin][thumb_freq][thumb_arr][
                     "coadded_map_ids"
                 ] += [thumb.pop("Id")]
@@ -101,19 +101,29 @@ def coadd_thumbnails(
                 for arr in arrays_to_coadd:
                     if arr not in coadded_thumbs[source][time_bin][freq]:
                         continue
-                    thumb_keys = list(coadded_thumbs[source][time_bin][freq][arr].keys())
+                    thumb_keys = list(
+                        coadded_thumbs[source][time_bin][freq][arr].keys()
+                    )
                     if not arr_coadd:
                         for key in thumb_keys:
-                            arr_coadd[key] = coadded_thumbs[source][time_bin][freq][arr].pop(key)
+                            arr_coadd[key] = coadded_thumbs[source][time_bin][freq][
+                                arr
+                            ].pop(key)
                         arr_coadd["coadded_arrays"] = [arr]
                     else:
                         for key in thumb_keys:
-                            arr_coadd[key] += coadded_thumbs[source][time_bin][freq][arr].pop(key)
+                            arr_coadd[key] += coadded_thumbs[source][time_bin][freq][
+                                arr
+                            ].pop(key)
                         arr_coadd["coadded_arrays"] += [arr]
                 if arr_coadd:
                     arr_coadd["freq"] = freq
-                    arr_coadd["time_min"] = np.amin(arr_coadd["coadded_observation_times"])
-                    arr_coadd["time_max"] = np.amax(arr_coadd["coadded_observation_times"])
+                    arr_coadd["time_min"] = np.amin(
+                        arr_coadd["coadded_observation_times"]
+                    )
+                    arr_coadd["time_max"] = np.amax(
+                        arr_coadd["coadded_observation_times"]
+                    )
                     arr_coadd["source_id"] = source
                     output_coadds.append(arr_coadd)
 
@@ -124,11 +134,17 @@ def coadd_thumbnails(
                         continue
                     arr_coadd = {}
                     for key in coadded_thumbs[source][time_bin][freq][arr].keys():
-                        arr_coadd[key] = coadded_thumbs[source][time_bin][freq][arr].pop(key)
+                        arr_coadd[key] = coadded_thumbs[source][time_bin][freq][
+                            arr
+                        ].pop(key)
                     arr_coadd["coadded_arrays"] = [arr]
                     arr_coadd["freq"] = freq
-                    arr_coadd["time_min"] = np.amin(arr_coadd["coadded_observation_times"])
-                    arr_coadd["time_max"] = np.amax(arr_coadd["coadded_observation_times"])
+                    arr_coadd["time_min"] = np.amin(
+                        arr_coadd["coadded_observation_times"]
+                    )
+                    arr_coadd["time_max"] = np.amax(
+                        arr_coadd["coadded_observation_times"]
+                    )
                     arr_coadd["source_id"] = source
                     output_coadds.append(arr_coadd)
 

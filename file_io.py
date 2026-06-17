@@ -13,7 +13,9 @@ from pixell import enmap
 
 
 # string + naming functions
-def radec_to_str_name(ra: float, dec: float, source_class="pointsource", observatory="SO"):
+def radec_to_str_name(
+    ra: float, dec: float, source_class="pointsource", observatory="SO"
+):
     """
     ## stolen from spt3g_software -AF
 

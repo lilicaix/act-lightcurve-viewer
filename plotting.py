@@ -6,8 +6,8 @@ import matplotlib.dates as mdates
 import numpy as np
 from matplotlib import pyplot as plt
 
-from file_io import decode_filename_to_act
-from processing import coadd
+from .file_io import decode_filename_to_act
+from .processing import coadd
 
 
 # hdf5 thumbnail plotting functions
@@ -37,13 +37,19 @@ def plot_iqu_maps(coadded_thumbnails, sources, bands=["f090", "f150", "f220"]):
                     continue
 
                 plt.subplot(131)
-                plt.imshow(coadded_thumbnails[i]["rho"][0] / coadded_thumbnails[i]["kappa"][0])
+                plt.imshow(
+                    coadded_thumbnails[i]["rho"][0] / coadded_thumbnails[i]["kappa"][0]
+                )
                 plt.title(coadded_thumbnails[i]["freq"] + " I")
                 plt.subplot(132)
-                plt.imshow(coadded_thumbnails[i]["rho"][1] / coadded_thumbnails[i]["kappa"][1])
+                plt.imshow(
+                    coadded_thumbnails[i]["rho"][1] / coadded_thumbnails[i]["kappa"][1]
+                )
                 plt.title(coadded_thumbnails[i]["freq"] + " Q")
                 plt.subplot(133)
-                plt.imshow(coadded_thumbnails[i]["rho"][2] / coadded_thumbnails[i]["kappa"][2])
+                plt.imshow(
+                    coadded_thumbnails[i]["rho"][2] / coadded_thumbnails[i]["kappa"][2]
+                )
                 plt.title(coadded_thumbnails[i]["freq"] + " U")
                 # plt.colorbar()
 
@@ -64,7 +70,11 @@ def plot_iqu_maps(coadded_thumbnails, sources, bands=["f090", "f150", "f220"]):
 
 
 def plot_time_evolution(
-    coadded_thumbnails, sources, mean_observation_times, coadd_days, bands=["f090", "f150", "f220"]
+    coadded_thumbnails,
+    sources,
+    mean_observation_times,
+    coadd_days,
+    bands=["f090", "f150", "f220"],
 ):
     flux_ref = 150
     for source in sources:
@@ -97,13 +107,18 @@ def plot_time_evolution(
                         if (
                             coadded_thumbnails[i]["source_id"] != source
                             or coadded_thumbnails[i]["freq"] != band
-                            or int(np.mean(coadded_thumbnails[i]["coadded_observation_times"]))
+                            or int(
+                                np.mean(
+                                    coadded_thumbnails[i]["coadded_observation_times"]
+                                )
+                            )
                             != mean_observation_times[source][band][ni]
                         ):
                             continue
                         f = flux_ref if band in ["f090", "f150"] else 2 * flux_ref
                         plt.imshow(
-                            coadded_thumbnails[i]["rho"][0] / coadded_thumbnails[i]["kappa"][0],
+                            coadded_thumbnails[i]["rho"][0]
+                            / coadded_thumbnails[i]["kappa"][0],
                             vmin=-f / np.sqrt(coadd_days if coadd_days > 1 else 1),
                             vmax=f / np.sqrt(coadd_days if coadd_days > 1 else 1),
                         )
@@ -136,7 +151,11 @@ def plot_time_evolution(
                         if (
                             coadded_thumbnails[i]["source_id"] != source
                             or coadded_thumbnails[i]["freq"] != band
-                            or int(np.mean(coadded_thumbnails[i]["coadded_observation_times"]))
+                            or int(
+                                np.mean(
+                                    coadded_thumbnails[i]["coadded_observation_times"]
+                                )
+                            )
                             != mean_observation_times[source][band][ni]
                         ):
                             continue
@@ -193,7 +212,9 @@ def plot_lightcurves_per_source(time, source_names, bands, flux, dflux):
             # Convert unix timestamps to UTC datetime objects for plotting
             dates = [datetime.fromtimestamp(ts, tz=timezone.utc) for ts in time[inds]]
 
-            plt.errorbar(dates, flux[inds], yerr=dflux[inds], marker="o", ls="", label=b)
+            plt.errorbar(
+                dates, flux[inds], yerr=dflux[inds], marker="o", ls="", label=b
+            )
 
         plt.grid()
         plt.legend()
@@ -215,7 +236,9 @@ def plot_lightcurves_per_band_uncut(time, bands, flux, dflux):
 
         dates = [datetime.fromtimestamp(ts, tz=timezone.utc) for ts in time[bands == b]]
 
-        plt.errorbar(dates, flux[bands == b], yerr=dflux[bands == b], marker="o", ls="", label=b)
+        plt.errorbar(
+            dates, flux[bands == b], yerr=dflux[bands == b], marker="o", ls="", label=b
+        )
         plt.grid()
         plt.legend()
         safe_band = str(b).strip()
@@ -224,7 +247,9 @@ def plot_lightcurves_per_band_uncut(time, bands, flux, dflux):
         plt.xlabel("Date (UTC)")
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
         plt.gcf().autofmt_xdate()
-        save_path = os.path.join("lightcurves_per_band", f"all_sources_{safe_band}_lightcurve.png")
+        save_path = os.path.join(
+            "lightcurves_per_band", f"all_sources_{safe_band}_lightcurve.png"
+        )
         plt.savefig(save_path, bbox_inches="tight")
         plt.close()
 
@@ -242,7 +267,8 @@ def calculate_and_plot_noise_cuts(bands, dflux):
     plt.legend()
     plt.title("Noise Cuts Distribution")
     plt.savefig(
-        os.path.join("aggregate_summaries", "noise_cuts_histogram.png"), bbox_inches="tight"
+        os.path.join("aggregate_summaries", "noise_cuts_histogram.png"),
+        bbox_inches="tight",
     )
     plt.close()
     return noise_cuts
@@ -268,7 +294,8 @@ def plot_all_sources_cut_lightcurves(time, flux, dflux, bands, noise_cuts):
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
     plt.gcf().autofmt_xdate()
     plt.savefig(
-        os.path.join("aggregate_summaries", "all_sources_cut_lightcurves.png"), bbox_inches="tight"
+        os.path.join("aggregate_summaries", "all_sources_cut_lightcurves.png"),
+        bbox_inches="tight",
     )
     plt.close()
 
@@ -299,7 +326,10 @@ def plot_flux_histogram_cut(flux, dflux, bands, noise_cuts):
     plt.title("Flux Histogram (After Cuts)")
     plt.xlabel("Flux Density (mJy)")
     plt.ylabel("Number of Observations")
-    plt.savefig(os.path.join("aggregate_summaries", "flux_histogram_cut.png"), bbox_inches="tight")
+    plt.savefig(
+        os.path.join("aggregate_summaries", "flux_histogram_cut.png"),
+        bbox_inches="tight",
+    )
     plt.close()
 
 
@@ -308,7 +338,9 @@ def plot_coadded_aggregate(time, flux, dflux, bands, ndays=30):
 
     plt.figure(dpi=200)
     for b in np.unique(bands):
-        t, f, df = coadd(time[bands == b], flux[bands == b], dflux[bands == b], ndays=ndays)
+        t, f, df = coadd(
+            time[bands == b], flux[bands == b], dflux[bands == b], ndays=ndays
+        )
 
         dates = [datetime.fromtimestamp(ts, tz=timezone.utc) for ts in t]
 
@@ -373,5 +405,7 @@ def plot_snr_all_bands(time, flux, dflux, bands, noise_cuts):
     plt.xlabel("Date (UTC)")
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
     plt.gcf().autofmt_xdate()
-    plt.savefig(os.path.join("aggregate_summaries", "snr_all_bands.png"), bbox_inches="tight")
+    plt.savefig(
+        os.path.join("aggregate_summaries", "snr_all_bands.png"), bbox_inches="tight"
+    )
     plt.close()
