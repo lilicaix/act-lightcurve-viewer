@@ -3,9 +3,7 @@ import argparse
 
 import numpy as np
 
-from . import file_io
-from . import plotting
-from . import processing
+from act_lightcurve_viewer import file_io, plotting, processing
 
 # pipeline parameters
 parser = argparse.ArgumentParser(description="ACT lightcurve viewer pipeline")
