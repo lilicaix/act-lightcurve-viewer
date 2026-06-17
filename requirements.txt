@@ -1,6 +1,0 @@
-numpy
-matplotlib
-astropy
-pixell
-h5py
-pandas
