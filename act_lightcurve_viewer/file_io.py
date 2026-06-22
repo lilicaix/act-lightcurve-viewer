@@ -9,6 +9,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.coordinates.angles import Angle
 from numpy import mod as npmod
+import pandas as pd
 from pixell import enmap
 
 
@@ -165,3 +166,60 @@ def read_lightcurves(filepath):
         "dflux": np.asarray(data[8], dtype=float),
     }
     return lc_data
+
+
+def load_biermann_catalog(filepath:str = "data/act_depth1_transient_catalog.txt") -> pd.DataFrame:
+    """
+    Load the Biermann et al. ACT Depth1 Transient Catalog 
+    file into a DataFrame.
+
+    The catalog is a fixed-width formatted text file with specific column widths and names.
+    """
+    colspecs = [
+        (0, 14),    # Name
+        (15, 18),   # Seq
+        (19, 26),   # RAdeg
+        (27, 34),   # DEdeg
+        (35, 39),   # PosErr
+        (40, 46),   # f220-Peak
+        (47, 53),   # f150-Peak
+        (54, 60),   # f090-Peak
+        (61, 66),   # e_f220-Peak
+        (67, 72),   # e_f150-Peak
+        (73, 77),   # e_f090-Peak
+        (78, 82),   # f220-Mean
+        (83, 87),   # f150-Mean
+        (88, 92),   # f090-Mean
+        (93, 96),   # e_f220-Mean
+        (97, 100),  # e_f150-Mean
+        (101, 104), # e_f090-Mean
+        (105, 123), # f220-tpeak
+        (124, 142), # f150-tpeak
+        (143, 161), # f090-tpeak
+        (162, 166), # Sp+Index
+        (167, 170), # e_Sp+Index
+        (171, 197), # Simbad-Id
+        (198, 207), # Type
+        (208, 219), # SpType
+        (220, 225), # Sep
+        (226, 235), # pval
+        (236, 243), # Dist
+    ]
+    names = [
+        "Name", "Seq", "RAdeg", "DEdeg", "PosErr",
+        "f220_Peak", "f150_Peak", "f090_Peak",
+        "e_f220_Peak", "e_f150_Peak", "e_f090_Peak",
+        "f220_Mean", "f150_Mean", "f090_Mean",
+        "e_f220_Mean", "e_f150_Mean", "e_f090_Mean",
+        "f220_tpeak", "f150_tpeak", "f090_tpeak",
+        "Sp_Index", "e_Sp_Index",
+        "Simbad_Id", "Type", "SpType", "Sep", "pval", "Dist",
+    ]
+    df = pd.read_fwf(filepath, colspecs=colspecs, names=names, skiprows=52, na_values="")
+    df["Name"] = df["Name"].str.strip()
+    df["Seq"] = df["Seq"].str.strip()
+    df["Simbad_Id"] = df["Simbad_Id"].str.strip()
+    df["Type"] = df["Type"].str.strip()
+    df["SpType"] = df["SpType"].str.strip()
+    
+    return df
