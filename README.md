@@ -4,27 +4,32 @@ Tools for analyzing and plotting ACT depth1 thumbnails and associated lightcurve
 
 ## Installation
 
-**1. Create and activate a virtual environment**
-
-```bash
-python -m venv myvenv
-source myvenv/bin/activate
-```
-
-**2. Install the package**
-
-To install directly from GitHub:
-
-```bash
-pip install git+https://github.com/lilicaix/act-lightcurve-viewer.git
-```
-
-Or, to install in editable mode from a local clone (recommended for development):
+**1. Clone the repository**
 
 ```bash
 git clone https://github.com/lilicaix/act-lightcurve-viewer.git
 cd act-lightcurve-viewer
-pip install -e .
+```
+
+**2. Create and activate a virtual environment**
+
+```bash
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+```
+
+**3. Install the package**
+
+For regular use:
+
+```bash
+uv pip install -e .
+```
+
+For development (includes pytest, ruff, etc.):
+
+```bash
+uv pip install -e ".[dev]"
 ```
 
 ## Usage
