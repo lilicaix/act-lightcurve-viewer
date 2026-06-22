@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Optional
+
+import pandas as pd
 from astropy import units as u
 from astropy.time import Time
-from dataclasses import dataclass
-import pandas as pd
-from typing import Optional
 
 
 @dataclass
@@ -71,8 +72,7 @@ class Transient:
     def __repr__(self) -> str:
         n = len(self._flares)
         return (
-            f"Transient(name={self.name!r}, simbad_id={self.simbad_id!r}, "
-            f"flares={n})"
+            f"Transient(name={self.name!r}, simbad_id={self.simbad_id!r}, flares={n})"
         )
 
     @classmethod
@@ -130,4 +130,3 @@ class Transient:
                 )
             )
         return transient
-
