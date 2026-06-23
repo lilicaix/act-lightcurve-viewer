@@ -81,7 +81,10 @@ def radec_to_str_name(
 
 
 def decode_filename_to_act(source_name, band):
-    """Reverses the IAU string format to standard RA/Dec degrees."""
+    """
+    Reverses the IAU string format to standard RA/Dec degrees.
+    Returns: (filename, top_title, readable_subtitle)
+    """
     source_str = str(source_name)
     if " J" in source_str:
         coord_str = source_str.split(" J")[1]
@@ -90,13 +93,29 @@ def decode_filename_to_act(source_name, band):
             ra_raw, dec_raw = match.groups()
             ra_formatted = f"{ra_raw[0:2]}h{ra_raw[2:4]}m{ra_raw[4:6]}s"
             dec_formatted = f"{dec_raw[0:3]}d{dec_raw[3:]}m"
+            
+            # 1. Strict IAU filename for your advisor's cross-match
+            filename = f"J{coord_str}_{band}.png"
+            
+            # 2. Bold top title
+            top_title = f"ACT J{coord_str}"
+            
+            # 3. Readable subtitle (Using your original SkyCoord math)
             try:
                 c = SkyCoord(f"{ra_formatted} {dec_formatted}")
-                return f"ACT_RA{c.ra.deg:.3f}_Dec{c.dec.deg:.3f}_{band}.png"
+                readable_subtitle = f"RA: {c.ra.deg:.3f}°, Dec: {c.dec.deg:.3f}°"
             except ValueError:
-                pass
-    safe_source = source_str.replace(" ", "_").replace("SO-S_", "ACT_")
-    return f"{safe_source}_{band}.png"
+                readable_subtitle = f"RA: {ra_formatted}, Dec: {dec_formatted}"
+                
+            return filename, top_title, readable_subtitle
+            
+    # Fallback for names that don't follow IAU standard
+    safe_source = source_str.replace(" ", "_").replace("SO-S_", "").replace("SO-SV_", "")
+    filename = f"{safe_source}_{band}.png"
+    top_title = f"ACT {safe_source}"
+    readable_subtitle = "Coordinates Unknown"
+    
+    return filename, top_title, readable_subtitle
 
 
 # hdf5 thumbnail tools

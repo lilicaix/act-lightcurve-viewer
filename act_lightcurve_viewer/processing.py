@@ -175,3 +175,67 @@ def coadd(time, flux, dflux, ndays=14, minobs=2):
         filled_inds.append(True)
 
     return time_bins[filled_inds], np.asarray(binned_flux), np.asarray(binned_dflux)
+
+def filter_bad_lightcurves(time, source_names, flux, dflux, bands):
+    """
+    Filters out observations where the uncertainty (dflux) is
+    below the 5th percentile or above the 95th percentile, per band.
+    """
+    valid_indices = np.ones(len(flux), dtype=bool)
+
+    for b in np.unique(bands):
+        band_dflux = dflux[bands == b]
+        if len(band_dflux) == 0: 
+            continue
+            
+        lower_limit = np.nanpercentile(band_dflux, 5)
+        upper_limit = np.nanpercentile(band_dflux, 95)
+
+        bad_low = (bands == b) & (dflux < lower_limit)
+        bad_high = (bands == b) & (dflux > upper_limit)
+
+        valid_indices[bad_low] = False
+        valid_indices[bad_high] = False
+
+    clean_time = time[valid_indices]
+    clean_sources = source_names[valid_indices]
+    clean_flux = flux[valid_indices]
+    clean_dflux = dflux[valid_indices]
+    clean_bands = bands[valid_indices]
+
+    return clean_time, clean_sources, clean_flux, clean_dflux, clean_bands
+
+def find_flares(time, source_names, flux, dflux, bands, snr_threshold=3.0):
+    """
+    Scans lightcurve arrays for transient events exceeding a specific SNR threshold.
+    Returns a list of lists containing: [star_name, frequency, time, amplitude, uncertainty, snr]
+    """
+    snr = flux / dflux
+    flare_mask = snr >= snr_threshold
+
+    flare_times = time[flare_mask]
+    flare_sources = source_names[flare_mask]
+    flare_fluxes = flux[flare_mask]
+    flare_dfluxes = dflux[flare_mask]
+    flare_bands = bands[flare_mask]
+    flare_snrs = snr[flare_mask]
+
+    detected_flares = []
+    for i in range(len(flare_times)):
+        raw_name = str(flare_sources[i])
+        
+        if " J" in raw_name:
+            clean_name = "J" + raw_name.split(" J")[1]
+        else:
+            clean_name = raw_name.replace("SO-S_", "").replace("SO-SV_", "").replace("SO-", "")
+
+        detected_flares.append([
+            clean_name,
+            str(flare_bands[i]),
+            float(flare_times[i]),
+            float(flare_fluxes[i]),
+            float(flare_dfluxes[i]),
+            float(flare_snrs[i])
+        ])
+
+    return detected_flares

@@ -3,6 +3,8 @@ import argparse
 
 import numpy as np
 
+import csv
+
 from act_lightcurve_viewer import file_io, plotting, processing
 
 # pipeline parameters
@@ -90,9 +92,27 @@ bands = lc_data["bands"]
 flux = lc_data["flux"]
 dflux = lc_data["dflux"]
 
-# 2. process math (noise cuts)
-print("Calculating dynamic noise cuts...")
+# 2. process math (noise cuts & flare finding)
+print("Calculating raw noise histogram...")
 noise_cuts = plotting.calculate_and_plot_noise_cuts(bands, dflux)
+
+print("Applying 5th and 95th percentile noise filter...")
+time, source_names, flux, dflux, bands = processing.filter_bad_lightcurves(
+    time, source_names, flux, dflux, bands
+)
+
+for b in noise_cuts:
+    noise_cuts[b] = np.inf
+
+print("Scanning for flares...")
+flares = processing.find_flares(time, source_names, flux, dflux, bands, snr_threshold=3.0)
+print(f"Found {len(flares)} potential flares across all sources!")
+
+with open("detected_flares.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["star_name", "frequency", "time", "amplitude", "uncertainty", "snr"])
+    writer.writerows(flares)
+print("Saved all flares to 'detected_flares.csv'!")
 
 # 3. generate plots
 print("Generating text lightcurve plots...")

@@ -16,17 +16,8 @@ def plot_iqu_maps(coadded_thumbnails, sources, bands=["f090", "f150", "f220"]):
         for band in bands:
             print(source, band)
 
-            # Generate safe ACT filename and append '_IQU' to prevent overwriting
-            base_filename = decode_filename_to_act(source, band)
+            base_filename, top_title, readable_subtitle = decode_filename_to_act(source, band)
             filename = base_filename.replace(".png", "_IQU.png")
-
-            # Format the base string to keep the title clean without the IQU tag
-            clean_title = (
-                base_filename.replace(".png", "")
-                .replace("_", " ")
-                .replace("RA", "RA: ")
-                .replace("Dec", ", Dec: ")
-            )
 
             plt.figure(figsize=(12, 4))
             for i in range(len(coadded_thumbnails)):
@@ -51,18 +42,14 @@ def plot_iqu_maps(coadded_thumbnails, sources, bands=["f090", "f150", "f220"]):
                     coadded_thumbnails[i]["rho"][2] / coadded_thumbnails[i]["kappa"][2]
                 )
                 plt.title(coadded_thumbnails[i]["freq"] + " U")
-                # plt.colorbar()
 
-                # Convert raw Unix timestamp to formatted UTC datetime string for title
                 unix_time = np.mean(coadded_thumbnails[i]["coadded_observation_times"])
                 dt_obj = datetime.fromtimestamp(unix_time, tz=timezone.utc)
                 readable_time = dt_obj.strftime("%Y-%m-%d %H:%M:%S")
 
-                # Fix layout overlap, apply readable title with converted time, route to folder, and save
                 plt.tight_layout()
-                plt.suptitle(f"{clean_title}   {readable_time}", y=1.05)
+                plt.suptitle(f"{top_title}\n{readable_subtitle}   |   {readable_time}", y=1.05)
 
-            # Route to IQU folder, save as PNG, and close figure
             os.makedirs("iqu", exist_ok=True)
             save_path = os.path.join("iqu", filename)
             plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
@@ -85,23 +72,15 @@ def plot_time_evolution(
             if len(mean_observation_times[source][band]) > 10:
                 ref_size = 2
 
-            # Generate safe ACT filename and formatted string for the title
-            filename = decode_filename_to_act(source, band)
-            clean_title = (
-                filename.replace(".png", "")
-                .replace("_", " ")
-                .replace("RA", "RA: ")
-                .replace("Dec", ", Dec: ")
-            )
+            # Unpack the new 3-part naming format
+            filename, top_title, readable_subtitle = decode_filename_to_act(source, band)
 
             if len(mean_observation_times[source][band]) < 25:
-                # Calculate grid dimensions for < 25 bins to avoid a long straight line
                 ncols = int(np.ceil(np.sqrt(ntimebins)))
                 nrows = int(np.ceil(ntimebins / ncols))
                 plt.figure(figsize=(ref_size * ncols, ref_size * nrows))
 
                 for ni in range(ntimebins):
-                    # Apply grid layout dimensions to subplots
                     plt.subplot(nrows, ncols, ni + 1)
                     for i in range(len(coadded_thumbnails)):
                         if (
@@ -122,21 +101,14 @@ def plot_time_evolution(
                             vmin=-f / np.sqrt(coadd_days if coadd_days > 1 else 1),
                             vmax=f / np.sqrt(coadd_days if coadd_days > 1 else 1),
                         )
-                    # Convert raw Unix timestamp to formatted UTC datetime string for title
                     unix_time = mean_observation_times[source][band][ni]
                     dt_obj = datetime.fromtimestamp(unix_time, tz=timezone.utc)
                     readable_time = dt_obj.strftime("%Y-%m-%d\n%H:%M:%S")
                     plt.title(readable_time, fontsize=10)
 
-                # Fix layout overlap, apply readable title, route to folder, save as PNG, and close figure
                 plt.tight_layout()
-                clean_title = (
-                    filename.replace(".png", "")
-                    .replace("_", " ")
-                    .replace("RA", "RA: ")
-                    .replace("Dec", ", Dec: ")
-                )
-                plt.suptitle(clean_title, y=1.05)
+                # Stack the titles
+                plt.suptitle(f"{top_title}\n{readable_subtitle}", y=1.05)
                 os.makedirs("time evolution", exist_ok=True)
                 save_path = os.path.join("time evolution", filename)
                 plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
@@ -165,21 +137,14 @@ def plot_time_evolution(
                             vmin=-3,
                             vmax=3,
                         )
-                    # Convert raw Unix timestamp to formatted UTC datetime string for title
                     unix_time = mean_observation_times[source][band][ni]
                     dt_obj = datetime.fromtimestamp(unix_time, tz=timezone.utc)
                     readable_time = dt_obj.strftime("%Y-%m-%d\n%H:%M:%S")
                     plt.title(readable_time, fontsize=10)
 
-                # Fix layout overlap, apply readable title, route to folder, save as PNG, and close figure
                 plt.tight_layout()
-                clean_title = (
-                    filename.replace(".png", "")
-                    .replace("_", " ")
-                    .replace("RA", "RA: ")
-                    .replace("Dec", ", Dec: ")
-                )
-                plt.suptitle(clean_title, y=1.05)
+                # Stack the titles
+                plt.suptitle(f"{top_title}\n{readable_subtitle}", y=1.05)
                 os.makedirs("time evolution", exist_ok=True)
                 save_path = os.path.join("time evolution", filename)
                 plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
@@ -196,29 +161,21 @@ def plot_lightcurves_per_source(time, source_names, bands, flux, dflux):
         source_inds = source_names == source
         print(source_names[source_inds])
 
-        base_filename = decode_filename_to_act(source, "all_bands")
-        filename = base_filename.replace(".png", "_lightcurve.png")
-        clean_title = (
-            base_filename.replace(".png", "")
-            .replace("_", " ")
-            .replace("RA", "RA: ")
-            .replace("Dec", ", Dec: ")
-            .replace(" all bands", "")
-        )
+        # Unpack the new 3-part naming format
+        base_filename, top_title, readable_subtitle = decode_filename_to_act(source, "all_bands")
+        filename = base_filename.replace("_all_bands.png", "_lightcurve.png")
 
         for b in np.unique(bands):
             inds = (source_inds) & (bands == b)
-
-            # Convert unix timestamps to UTC datetime objects for plotting
             dates = [datetime.fromtimestamp(ts, tz=timezone.utc) for ts in time[inds]]
-
             plt.errorbar(
                 dates, flux[inds], yerr=dflux[inds], marker="o", ls="", label=b
             )
 
         plt.grid()
         plt.legend()
-        plt.title(f"{clean_title} Lightcurve")
+        # Stack the titles
+        plt.title(f"{top_title} Lightcurve\n{readable_subtitle}")
         plt.ylabel("Flux Density (mJy)")
         plt.xlabel("Date (UTC)")
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
