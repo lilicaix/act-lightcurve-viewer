@@ -35,7 +35,6 @@ lightcurve_file = args.lightcurve_file
 coadd_days = args.coadd_days
 act_bands = args.bands
 
-
 # phase 1: thumbnail pipeline
 print("\n=== STARTING THUMBNAIL PROCESSING ===")
 
@@ -77,7 +76,6 @@ plotting.plot_iqu_maps(coadded_thumbnails, sources)
 plotting.plot_time_evolution(
     coadded_thumbnails, sources, mean_observation_times, coadd_days
 )
-
 
 # phase 2: text lightcurve pipeline
 print("\n=== STARTING LIGHTCURVE PROCESSING ===")
