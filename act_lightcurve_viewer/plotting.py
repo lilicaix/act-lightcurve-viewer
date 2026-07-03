@@ -134,8 +134,8 @@ def plot_time_evolution(
                         plt.imshow(
                             coadded_thumbnails[i]["rho"][0]
                             * coadded_thumbnails[i]["kappa"][0] ** (-0.5),
-                            vmin=-3,
-                            vmax=3,
+                            vmin=-5,
+                            vmax=5,
                         )
                     unix_time = mean_observation_times[source][band][ni]
                     dt_obj = datetime.fromtimestamp(unix_time, tz=timezone.utc)
@@ -147,6 +147,114 @@ def plot_time_evolution(
                 plt.suptitle(f"{top_title}\n{readable_subtitle}", y=1.05)
                 os.makedirs("time evolution", exist_ok=True)
                 save_path = os.path.join("time evolution", filename)
+                plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
+                plt.close()
+
+def plot_time_evolution_polarization(
+    coadded_thumbnails,
+    sources,
+    mean_observation_times,
+    coadd_days,
+    bands=["f090", "f150", "f220"],
+):
+    flux_ref = 150
+    for source in sources:
+        for band in bands:
+            print(source, band)
+            ntimebins = len(mean_observation_times[source][band])
+            ref_size = 4
+            if len(mean_observation_times[source][band]) > 10:
+                ref_size = 2
+
+            filename, top_title, readable_subtitle = decode_filename_to_act(source, band)
+            
+            # Change filename so it doesn't overwrite total intensity (I) plots
+            filename = filename.replace(".png", "_polarization.png")
+
+            if len(mean_observation_times[source][band]) < 25:
+                ncols = int(np.ceil(np.sqrt(ntimebins)))
+                nrows = int(np.ceil(ntimebins / ncols))
+                plt.figure(figsize=(ref_size * ncols, ref_size * nrows))
+
+                for ni in range(ntimebins):
+                    plt.subplot(nrows, ncols, ni + 1)
+                    for i in range(len(coadded_thumbnails)):
+                        if (
+                            coadded_thumbnails[i]["source_id"] != source
+                            or coadded_thumbnails[i]["freq"] != band
+                            or int(
+                                np.mean(
+                                    coadded_thumbnails[i]["coadded_observation_times"]
+                                )
+                            )
+                            != mean_observation_times[source][band][ni]
+                        ):
+                            continue
+                        f = flux_ref if band in ["f090", "f150"] else 2 * flux_ref
+                        
+                        # Calculate Polarization Flux (rho / kappa)
+                        Q_flux = coadded_thumbnails[i]["rho"][1] / coadded_thumbnails[i]["kappa"][1]
+                        U_flux = coadded_thumbnails[i]["rho"][2] / coadded_thumbnails[i]["kappa"][2]
+                        p_flux = np.sqrt(Q_flux**2 + U_flux**2)
+                        
+                        plt.imshow(
+                            p_flux,
+                            vmin=0, # Amplitude is always positive
+                            vmax=f / np.sqrt(coadd_days if coadd_days > 1 else 1),
+                        )
+                    unix_time = mean_observation_times[source][band][ni]
+                    dt_obj = datetime.fromtimestamp(unix_time, tz=timezone.utc)
+                    readable_time = dt_obj.strftime("%Y-%m-%d\n%H:%M:%S")
+                    plt.title(readable_time, fontsize=10)
+
+                plt.tight_layout()
+                plt.suptitle(f"{top_title} (Polarization)\n{readable_subtitle}", y=1.05)
+                
+                # Save to polarization folder
+                os.makedirs("time evolution pol", exist_ok=True)
+                save_path = os.path.join("time evolution pol", filename)
+                plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
+                plt.close()
+
+            else:
+                sqrtn = int(np.ceil(np.sqrt(ntimebins)))
+                plt.figure(figsize=(ref_size * sqrtn, ref_size * sqrtn))
+                for ni in range(ntimebins):
+                    plt.subplot(sqrtn, sqrtn, ni + 1)
+                    for i in range(len(coadded_thumbnails)):
+                        if (
+                            coadded_thumbnails[i]["source_id"] != source
+                            or coadded_thumbnails[i]["freq"] != band
+                            or int(
+                                np.mean(
+                                    coadded_thumbnails[i]["coadded_observation_times"]
+                                )
+                            )
+                            != mean_observation_times[source][band][ni]
+                        ):
+                            continue
+                            
+                        # Calculate Polarization Signal-to-Noise
+                        Q_snr = coadded_thumbnails[i]["rho"][1] * coadded_thumbnails[i]["kappa"][1] ** (-0.5)
+                        U_snr = coadded_thumbnails[i]["rho"][2] * coadded_thumbnails[i]["kappa"][2] ** (-0.5)
+                        p_snr = np.sqrt(Q_snr**2 + U_snr**2)
+                        
+                        plt.imshow(
+                            p_snr,
+                            vmin=0, # Amplitude is always positive
+                            vmax=5, # A solid upper bound for SNR detection limits
+                        )
+                    unix_time = mean_observation_times[source][band][ni]
+                    dt_obj = datetime.fromtimestamp(unix_time, tz=timezone.utc)
+                    readable_time = dt_obj.strftime("%Y-%m-%d\n%H:%M:%S")
+                    plt.title(readable_time, fontsize=10)
+
+                plt.tight_layout()
+                plt.suptitle(f"{top_title} (Polarization)\n{readable_subtitle}", y=1.05)
+                
+                # Save to polarization folder
+                os.makedirs("time evolution pol", exist_ok=True)
+                save_path = os.path.join("time evolution pol", filename)
                 plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
                 plt.close()
 

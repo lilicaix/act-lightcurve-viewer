@@ -69,13 +69,21 @@ for source in sources:
             mean_observation_times[source][band].append(
                 int(np.mean(coadded_thumbnails[i]["coadded_observation_times"]))
             )
+        mean_observation_times[source][band].sort()
 
+'''
 # 4. generate plots
 print(f"Generating thumbnail plots for {len(sources)} sources...")
-plotting.plot_iqu_maps(coadded_thumbnails, sources)
+plotting.plot_iqu_maps(
+    coadded_thumbnails, sources
+)
 plotting.plot_time_evolution(
     coadded_thumbnails, sources, mean_observation_times, coadd_days
 )
+plotting.plot_time_evolution_polarization(
+    coadded_thumbnails, sources, mean_observation_times, coadd_days
+)
+'''
 
 # phase 2: text lightcurve pipeline
 print("\n=== STARTING LIGHTCURVE PROCESSING ===")
@@ -111,6 +119,7 @@ with open("detected_flares.csv", "w", newline="") as f:
     writer.writerow(["star_name", "frequency", "time", "amplitude", "uncertainty", "snr"])
     writer.writerows(flares)
 print("Saved all flares to 'detected_flares.csv'!")
+processing.calculate_polarization_limits(coadded_thumbnails, flares)
 
 # 3. generate plots
 print("Generating text lightcurve plots...")
