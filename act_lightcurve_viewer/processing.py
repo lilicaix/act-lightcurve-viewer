@@ -1,10 +1,47 @@
 # imports
 import numpy as np
 import csv
+import re
+
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 
 from .file_io import get_thumbnail_times
 
+def consolidate_data(thumbnails=None, sources=None, tol=60.0):
+    """Mathematically parses J-names to bypass Astropy's strict string parser."""
+    names = sorted(set((list(thumbnails) if thumbnails else []) + 
+                       (list(np.unique(sources)) if sources is not None else [])))
+    mapping = {n: n for n in names}
+    valid, coords = [], []
+    
+    for n in names:
+        # splits into HH, MM, SS.s, +/-DD, MM.m
+        m = re.search(r'J(\d{2})(\d{2})(\d{2}\.?\d*)([+-]\d{2})(\d{2}\.?\d*)', str(n))
+        if m:
+            h, m_ra, s, d, m_dec = m.groups()
+            
+            ra_deg = (float(h) + float(m_ra)/60 + float(s)/3600) * 15
+            sign = 1 if d[0] == '+' else -1
+            dec_deg = sign * (abs(float(d)) + float(m_dec)/60)
+            
+            coords.append(SkyCoord(ra=ra_deg*u.deg, dec=dec_deg*u.deg))
+            valid.append(n)
 
+    if valid:
+        cat = SkyCoord(coords)
+        i1, i2, _, _ = cat.search_around_sky(cat, tol*u.arcsec)
+        for a, b in zip(i1, i2): 
+            if a < b: mapping[valid[b]] = valid[a]
+
+    t_out = {} if thumbnails else None
+    if thumbnails:
+        for k, v in thumbnails.items(): 
+            t_out.setdefault(mapping.get(k, k), []).extend(v)
+            
+    s_out = np.array([mapping.get(n, n) for n in sources]) if sources is not None else None
+    return (t_out, s_out) if (thumbnails and sources is not None) else (t_out or s_out)
+    
 def coadd_thumbnails(
     thumbnails,
     coadd_arrays=["all"],
@@ -242,8 +279,8 @@ def find_flares(time, source_names, flux, dflux, bands, snr_threshold=3.0):
     return detected_flares
 
 
-def calculate_polarization_limits(coadded_thumbnails, flares, output_filename="polarization_summary_table.csv"):
-    print("\n--- STARTING POLARIZATION CROSS-REFERENCE ---")
+def calculate_polarization_limits(coadded_thumbnails, flares, output_filename="polarization_summary.csv"):
+    print("\n=== STARTING POLARIZATION CROSS-REFERENCE ===")
     results = []
     
     for flare in flares:
@@ -291,7 +328,7 @@ def calculate_polarization_limits(coadded_thumbnails, flares, output_filename="p
     if results:
         with open(output_filename, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["Star Name", "Band", "Intensity (mJy)", "Pol Amplitude (mJy)", "3-Sigma Limit (mJy)", "Max Pol Fraction (%)"])
+            writer.writerow(["Star Name", "Band", "Intensity (mJy)", "Pol Amplitude (mJy)", "3-Sigma Limit (mJy)", "Max Pol Fraction"])
             writer.writerows(results)
         print(f"\nSUCCESS! Saved polarization summary table with {len(results)} rows!")
     else:

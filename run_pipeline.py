@@ -38,18 +38,22 @@ act_bands = args.bands
 # phase 1: thumbnail pipeline
 print("\n=== STARTING THUMBNAIL PROCESSING ===")
 
-# 1. load data
 all_thumbnails = file_io.read_thumbnails(thumbnail_dir)
 
-# 2. process math (coadding)
-coadded_thumbnails = []
+# load data
+master_thumbs = {}
 for file_data in all_thumbnails:
-    coadded = processing.coadd_thumbnails(
-        file_data, time_range=[], time_delta=coadd_days
-    )
-    coadded_thumbnails.extend(coadded)
+    for k, v in file_data.items():
+        master_thumbs.setdefault(k, []).extend(v)
 
-# 3. setup variables for plotting
+master_thumbs = processing.consolidate_data(thumbnails=master_thumbs)
+
+# process math (coadding)
+coadded_thumbnails = processing.coadd_thumbnails(
+    master_thumbs, time_range=[], time_delta=coadd_days
+)
+
+# setup variables for plotting
 sources = []
 for i in range(len(coadded_thumbnails)):
     sources.append(coadded_thumbnails[i]["source_id"])
@@ -71,8 +75,7 @@ for source in sources:
             )
         mean_observation_times[source][band].sort()
 
-'''
-# 4. generate plots
+# generate plots
 print(f"Generating thumbnail plots for {len(sources)} sources...")
 plotting.plot_iqu_maps(
     coadded_thumbnails, sources
@@ -83,12 +86,11 @@ plotting.plot_time_evolution(
 plotting.plot_time_evolution_polarization(
     coadded_thumbnails, sources, mean_observation_times, coadd_days
 )
-'''
 
 # phase 2: text lightcurve pipeline
 print("\n=== STARTING LIGHTCURVE PROCESSING ===")
 
-# 1. load data
+# load data
 print(f"Loading lightcurve data from: {lightcurve_file}")
 lc_data = file_io.read_lightcurves(lightcurve_file)
 
@@ -98,7 +100,16 @@ bands = lc_data["bands"]
 flux = lc_data["flux"]
 dflux = lc_data["dflux"]
 
-# 2. process math (noise cuts & flare finding)
+source_names = processing.consolidate_data(sources=source_names)
+
+sort_idx = np.lexsort((time, source_names))
+time = time[sort_idx]
+source_names = source_names[sort_idx]
+flux = flux[sort_idx]
+dflux = dflux[sort_idx]
+bands = bands[sort_idx]
+
+# process math (noise cuts & flare finding)
 print("Calculating raw noise histogram...")
 noise_cuts = plotting.calculate_and_plot_noise_cuts(bands, dflux)
 
@@ -114,14 +125,13 @@ print("Scanning for flares...")
 flares = processing.find_flares(time, source_names, flux, dflux, bands, snr_threshold=3.0)
 print(f"Found {len(flares)} potential flares across all sources!")
 
-with open("detected_flares.csv", "w", newline="") as f:
+with open("all_detected_flares.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["star_name", "frequency", "time", "amplitude", "uncertainty", "snr"])
     writer.writerows(flares)
-print("Saved all flares to 'detected_flares.csv'!")
-processing.calculate_polarization_limits(coadded_thumbnails, flares)
+print("Saved all flares to 'all_detected_flares.csv'!")
 
-# 3. generate plots
+# generate plots
 print("Generating text lightcurve plots...")
 plotting.plot_lightcurves_per_source(time, source_names, bands, flux, dflux)
 plotting.plot_lightcurves_per_band_uncut(time, bands, flux, dflux)
@@ -133,3 +143,5 @@ plotting.plot_snr_all_bands(time, flux, dflux, bands, noise_cuts)
 
 print("\n=== PIPELINE COMPLETE! ===")
 print("All plots have been saved to their respective directories.")
+
+np.save('coadded_thumbnails.npy', coadded_thumbnails)

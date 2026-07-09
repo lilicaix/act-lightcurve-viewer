@@ -48,12 +48,10 @@ def main():
         # find matching core coordinates
         matching_events = ref[ref['core_coord'] == core_star]
         
-        # --- NEW LOGIC: tag known stars before time check ---
         if not matching_events.empty:
             # grab all matched event ids and join them with a comma
             event_ids = matching_events['event_id'].astype(str).tolist()
             flare_data['biermann_event'] = ', '.join(event_ids)
-        # ----------------------------------------------------
             
         for _, b_event in matching_events.iterrows():
             # flag if within rise/fall window
@@ -75,8 +73,8 @@ def main():
         cols.insert(1, cols.pop(cols.index('biermann_event')))
         final_df = final_df[cols]
         
-        final_df.to_csv('sorted_new_flares.csv', index=False)
-        print(f"\nsaved {len(final_df)} novel flares to 'sorted_new_flares.csv'")
+        final_df.to_csv('final_detected_flares.csv', index=False)
+        print(f"\nsaved {len(final_df)} novel flares to 'final_detected_flares.csv'")
     else:
         print("\nall flares matched biermann events. no novel flares found.")
         

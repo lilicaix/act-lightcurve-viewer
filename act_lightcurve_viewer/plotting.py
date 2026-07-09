@@ -50,8 +50,8 @@ def plot_iqu_maps(coadded_thumbnails, sources, bands=["f090", "f150", "f220"]):
                 plt.tight_layout()
                 plt.suptitle(f"{top_title}\n{readable_subtitle}   |   {readable_time}", y=1.05)
 
-            os.makedirs("iqu", exist_ok=True)
-            save_path = os.path.join("iqu", filename)
+            os.makedirs("thumbnail_iqu", exist_ok=True)
+            save_path = os.path.join("thumbnail_iqu", filename)
             plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
             plt.close()
 
@@ -109,8 +109,8 @@ def plot_time_evolution(
                 plt.tight_layout()
                 # Stack the titles
                 plt.suptitle(f"{top_title}\n{readable_subtitle}", y=1.05)
-                os.makedirs("time evolution", exist_ok=True)
-                save_path = os.path.join("time evolution", filename)
+                os.makedirs("thumbnail_time_evolution", exist_ok=True)
+                save_path = os.path.join("thumbnail_time_evolution", filename)
                 plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
                 plt.close()
 
@@ -145,10 +145,16 @@ def plot_time_evolution(
                 plt.tight_layout()
                 # Stack the titles
                 plt.suptitle(f"{top_title}\n{readable_subtitle}", y=1.05)
-                os.makedirs("time evolution", exist_ok=True)
-                save_path = os.path.join("time evolution", filename)
+                os.makedirs("thumbnail_time_evolution", exist_ok=True)
+                save_path = os.path.join("thumbnail_time_evolution", filename)
                 plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
                 plt.close()
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime, timezone
+import warnings
 
 def plot_time_evolution_polarization(
     coadded_thumbnails,
@@ -192,10 +198,14 @@ def plot_time_evolution_polarization(
                             continue
                         f = flux_ref if band in ["f090", "f150"] else 2 * flux_ref
                         
-                        # Calculate Polarization Flux (rho / kappa)
-                        Q_flux = coadded_thumbnails[i]["rho"][1] / coadded_thumbnails[i]["kappa"][1]
-                        U_flux = coadded_thumbnails[i]["rho"][2] / coadded_thumbnails[i]["kappa"][2]
-                        p_flux = np.sqrt(Q_flux**2 + U_flux**2)
+                        # Calculate Polarization Flux (rho / kappa) safely
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            Q_flux = coadded_thumbnails[i]["rho"][1] / coadded_thumbnails[i]["kappa"][1]
+                            U_flux = coadded_thumbnails[i]["rho"][2] / coadded_thumbnails[i]["kappa"][2]
+                            p_flux = np.sqrt(Q_flux**2 + U_flux**2)
+                            # Scrub NaNs and Infs to prevent plotting crashes
+                            p_flux = np.nan_to_num(p_flux, nan=0.0, posinf=0.0, neginf=0.0)
                         
                         plt.imshow(
                             p_flux,
@@ -211,8 +221,8 @@ def plot_time_evolution_polarization(
                 plt.suptitle(f"{top_title} (Polarization)\n{readable_subtitle}", y=1.05)
                 
                 # Save to polarization folder
-                os.makedirs("time evolution pol", exist_ok=True)
-                save_path = os.path.join("time evolution pol", filename)
+                os.makedirs("thumbnail_time_evolution_pol", exist_ok=True)
+                save_path = os.path.join("thumbnail_time_evolution_pol", filename)
                 plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
                 plt.close()
 
@@ -234,10 +244,14 @@ def plot_time_evolution_polarization(
                         ):
                             continue
                             
-                        # Calculate Polarization Signal-to-Noise
-                        Q_snr = coadded_thumbnails[i]["rho"][1] * coadded_thumbnails[i]["kappa"][1] ** (-0.5)
-                        U_snr = coadded_thumbnails[i]["rho"][2] * coadded_thumbnails[i]["kappa"][2] ** (-0.5)
-                        p_snr = np.sqrt(Q_snr**2 + U_snr**2)
+                        # Calculate Polarization Signal-to-Noise safely
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            Q_snr = coadded_thumbnails[i]["rho"][1] * coadded_thumbnails[i]["kappa"][1] ** (-0.5)
+                            U_snr = coadded_thumbnails[i]["rho"][2] * coadded_thumbnails[i]["kappa"][2] ** (-0.5)
+                            p_snr = np.sqrt(Q_snr**2 + U_snr**2)
+                            # Scrub NaNs and Infs to prevent plotting crashes
+                            p_snr = np.nan_to_num(p_snr, nan=0.0, posinf=0.0, neginf=0.0)
                         
                         plt.imshow(
                             p_snr,
@@ -253,8 +267,8 @@ def plot_time_evolution_polarization(
                 plt.suptitle(f"{top_title} (Polarization)\n{readable_subtitle}", y=1.05)
                 
                 # Save to polarization folder
-                os.makedirs("time evolution pol", exist_ok=True)
-                save_path = os.path.join("time evolution pol", filename)
+                os.makedirs("thumbnail_time_evolutionpol", exist_ok=True)
+                save_path = os.path.join("thumbnail_time_evolutiool", filename)
                 plt.savefig(save_path, format="png", dpi=150, bbox_inches="tight")
                 plt.close()
 
