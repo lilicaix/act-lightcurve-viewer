@@ -279,57 +279,51 @@ def find_flares(time, source_names, flux, dflux, bands, snr_threshold=3.0):
     return detected_flares
 
 
-def calculate_polarization_limits(coadded_thumbnails, flares, output_filename="polarization_summary.csv"):
+def calculate_polarization_limits(coadded_thumbnails, flares):
     print("\n=== STARTING POLARIZATION CROSS-REFERENCE ===")
-    results = []
+    updated_flares = []
     
     for flare in flares:
-        # unpack the flare data directly from the pipeline's list
-        star_raw, band_raw, flare_time, intensity, _, _ = flare
+        # unpack flare data
+        star_raw, band_raw, flare_time, intensity, err, snr = flare
         
-        # force variables to be strings and delete hidden spaces
         star = str(star_raw).strip()
         band = str(band_raw).strip()
         
-        # grab all thumbnails for this specific star and band
+        # default to nan if no match is found
+        pol_amp = np.nan
+        upper_limit_3sigma = np.nan
+        max_pol_fraction = np.nan
+        
+        # get thumbnails for this star and band
         thumbs = [t for t in coadded_thumbnails if star in str(t["source_id"]).strip() and str(t["freq"]).strip() == band]
         
-        if not thumbs:
-            continue
+        if thumbs:
+            # find closest thumbnail in time
+            best_thumb = min(thumbs, key=lambda t: abs(np.mean(t["coadded_observation_times"]) - float(flare_time)))
+            time_diff_seconds = abs(np.mean(best_thumb["coadded_observation_times"]) - float(flare_time))
             
-        # find the thumbnail closest to the flare time
-        best_thumb = min(thumbs, key=lambda t: abs(np.mean(t["coadded_observation_times"]) - float(flare_time)))
-        
-        # check the time difference
-        time_diff_seconds = abs(np.mean(best_thumb["coadded_observation_times"]) - float(flare_time))
-        
-        # if it's within our 4-day window, calculate the physics
-        if time_diff_seconds < (4 * 86400):
-            
-            center_y = best_thumb["rho"][1].shape[0] // 2
-            center_x = best_thumb["rho"][1].shape[1] // 2
-            
-            # Extract Q and U specifically at that center pixel!
-            Q_flux = best_thumb["rho"][1][center_y, center_x] / best_thumb["kappa"][1][center_y, center_x]
-            U_flux = best_thumb["rho"][2][center_y, center_x] / best_thumb["kappa"][2][center_y, center_x]
-            
-            p_amp = np.sqrt(Q_flux**2 + U_flux**2)
-            
-            # Extract the noise specifically at the center pixel
-            p_noise = 1.0 / np.sqrt(best_thumb["kappa"][1][center_y, center_x])
-            upper_limit_3sigma = 3 * p_noise
-                        
-            results.append([
-                star, band, round(float(intensity), 2), round(float(p_amp), 2), 
-                round(float(upper_limit_3sigma), 2), round(float(upper_limit_3sigma)/float(intensity), 4)
-            ])
+            # calculate physics if within 4-day window
+            if time_diff_seconds < (4 * 86400):
+                center_y = best_thumb["rho"][1].shape[0] // 2
+                center_x = best_thumb["rho"][1].shape[1] // 2
+                
+                Q_flux = best_thumb["rho"][1][center_y, center_x] / best_thumb["kappa"][1][center_y, center_x]
+                U_flux = best_thumb["rho"][2][center_y, center_x] / best_thumb["kappa"][2][center_y, center_x]
+                
+                p_amp_val = np.sqrt(Q_flux**2 + U_flux**2)
+                p_noise = 1.0 / np.sqrt(best_thumb["kappa"][1][center_y, center_x])
+                upper_limit_val = 3 * p_noise
+                
+                pol_amp = round(float(p_amp_val), 2)
+                upper_limit_3sigma = round(float(upper_limit_val), 2)
+                max_pol_fraction = round(float(upper_limit_val)/float(intensity), 4)
 
-    # save the final summary table
-    if results:
-        with open(output_filename, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Star Name", "Band", "Intensity (mJy)", "Pol Amplitude (mJy)", "3-Sigma Limit (mJy)", "Max Pol Fraction"])
-            writer.writerows(results)
-        print(f"\nSUCCESS! Saved polarization summary table with {len(results)} rows!")
-    else:
-        print("\nERROR: Table is empty. No flares were successfully matched.")
+        # append new metrics directly to the flare row
+        updated_flares.append([
+            star_raw, band_raw, flare_time, intensity, err, snr, 
+            round(float(intensity), 2), pol_amp, upper_limit_3sigma, max_pol_fraction
+        ])
+
+    print(f"success! processed polarization limits for {len(updated_flares)} flares!")
+    return updated_flares

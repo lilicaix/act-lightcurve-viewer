@@ -1,9 +1,9 @@
 # imports
 import argparse
-
 import numpy as np
-
-import csv
+import pandas as pd
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 
 from act_lightcurve_viewer import file_io, plotting, processing
 
@@ -74,7 +74,7 @@ for source in sources:
                 int(np.mean(coadded_thumbnails[i]["coadded_observation_times"]))
             )
         mean_observation_times[source][band].sort()
-
+'''
 # generate plots
 print(f"Generating thumbnail plots for {len(sources)} sources...")
 plotting.plot_iqu_maps(
@@ -86,7 +86,7 @@ plotting.plot_time_evolution(
 plotting.plot_time_evolution_polarization(
     coadded_thumbnails, sources, mean_observation_times, coadd_days
 )
-
+'''
 # phase 2: text lightcurve pipeline
 print("\n=== STARTING LIGHTCURVE PROCESSING ===")
 
@@ -125,10 +125,49 @@ print("Scanning for flares...")
 flares = processing.find_flares(time, source_names, flux, dflux, bands, snr_threshold=3.0)
 print(f"Found {len(flares)} potential flares across all sources!")
 
-with open("all_detected_flares.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow(["star_name", "frequency", "time", "amplitude", "uncertainty", "snr"])
-    writer.writerows(flares)
+# calculate polarization limits natively
+flares_with_pol = processing.calculate_polarization_limits(coadded_thumbnails, flares)
+
+# load into unified dataframe
+columns = [
+    "star_name", "frequency", "time", "amplitude", "uncertainty", "snr", 
+    "intensity", "pol_amplitude", "3_sigma_limit", "max_pol_fraction"
+]
+final_df = pd.DataFrame(flares_with_pol, columns=columns)
+
+# crossmatch with biermann catalog
+biermann_df = pd.read_csv('biermann_events_clean.csv')
+biermann_subset = biermann_df[['star_name', 'event_id']].dropna(subset=['star_name']).copy()
+
+def parse_name_to_coord(name):
+    name = str(name).strip().replace('J', '')
+    sign = '+' if '+' in name else '-'
+    ra_part, dec_part = name.split(sign)
+    ra_str = f"{ra_part[0:2]}h{ra_part[2:4]}m{ra_part[4:]}s"
+    if '.' in dec_part and len(dec_part.split('.')[0]) == 4:
+        dec_str = f"{sign}{dec_part[0:2]}d{dec_part[2:]}m"
+    else:
+        dec_str = f"{sign}{dec_part[0:2]}d{dec_part[2:4]}m{dec_part[4:]}s"
+    return SkyCoord(f"{ra_str} {dec_str}", frame='icrs')
+
+# assign event ids based on spatial match
+pol_coords = SkyCoord([parse_name_to_coord(n) for n in final_df['star_name']])
+biermann_coords = SkyCoord([parse_name_to_coord(n) for n in biermann_subset['star_name']])
+idx, d2d, _ = pol_coords.match_to_catalog_sky(biermann_coords)
+match_mask = d2d < (60 * u.arcsec)
+
+final_df['event_id'] = pd.Series(dtype='object')
+final_df.loc[match_mask, 'event_id'] = biermann_subset.iloc[idx[match_mask]]['event_id'].values
+final_df['event_id'] = final_df['event_id'].str.replace(r'[a-zA-Z]', '', regex=True)
+
+# reorder columns so event_id is second
+cols = final_df.columns.tolist()
+if 'event_id' in cols:
+    cols.insert(1, cols.pop(cols.index('event_id')))
+final_df = final_df[cols]
+
+# save master spreadsheet
+final_df.to_csv("all_detected_flares.csv", index=False)
 print("Saved all flares to 'all_detected_flares.csv'!")
 
 # generate plots

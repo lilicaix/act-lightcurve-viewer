@@ -63,6 +63,11 @@ def main():
     # convert biermann peak times from utc to unix seconds for plotting
     if "peak_unix" not in biermann_ref.columns:
         biermann_ref["peak_unix"] = pd.to_datetime(biermann_ref["peak_utc"], utc=True).astype("int64") // 10**9
+
+    # convert duration hours into absolute unix timestamps for shading
+    if "rise_hr" in biermann_ref.columns and "fall_hr" in biermann_ref.columns:
+        biermann_ref["rise_unix"] = biermann_ref["peak_unix"] - (biermann_ref["rise_hr"] * 3600)
+        biermann_ref["fall_unix"] = biermann_ref["peak_unix"] + (biermann_ref["fall_hr"] * 3600)
     
     # extract core coordinates for cross-referencing
     biermann_ref["core_coord"] = biermann_ref["star_name"].apply(get_core_coord)
@@ -116,6 +121,20 @@ def main():
 
         # process and plot biermann flares if any exist
         if not b_matches.empty:
+            # shade rise/fall periods
+            added_shade_label = False
+            if "rise_unix" in b_matches.columns and "fall_unix" in b_matches.columns:
+                for _, row in b_matches.iterrows():
+                    try:
+                        r_date = datetime.fromtimestamp(row["rise_unix"], tz=timezone.utc)
+                        f_date = datetime.fromtimestamp(row["fall_unix"], tz=timezone.utc)
+                        
+                        # only add label once to prevent legend clutter
+                        label = "Biermann Active Period" if not added_shade_label else None
+                        plt.axvspan(r_date, f_date, color="lightblue", alpha=0.3, zorder=1, label=label)
+                        added_shade_label = True
+                    except (ValueError, TypeError):
+                        continue
             b_times = b_matches["peak_unix"].values
             b_dates, b_fluxes = [], []
             
